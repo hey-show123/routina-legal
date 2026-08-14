@@ -31,6 +31,7 @@ document.body.insertAdjacentHTML("afterbegin", `
 
       <section id="consent" class="stack hidden">
         <div class="client"><span class="client-icon">AI</span><div><strong id="client-name"></strong><small id="client-origin"></small></div></div>
+        <div class="permission"><span>i</span><div><strong>アカウント情報と継続接続</strong><small id="requested-scopes"></small></div></div>
         <div class="permission"><span>✓</span><div><strong>ルーティンを読む</strong><small>ルーティン、ステップ、スケジュールだけ。履歴・日記・位置情報は対象外です。</small></div></div>
         <fieldset>
           <legend>書き込み権限</legend>
@@ -153,6 +154,8 @@ async function consentPage() {
   $("lead").textContent = "次のAIクライアントがRoutinaへの接続を求めています。";
   $("client-name").textContent = data.client.name || "AI client";
   $("client-origin").textContent = new URL(data.redirect_uri).origin;
+  const scopeLabels = { openid: "本人識別", email: "メールアドレス", profile: "基本プロフィール", offline_access: "期限更新用の継続接続" };
+  $("requested-scopes").textContent = (data.scope || "").split(/\s+/).filter(Boolean).map(scope => scopeLabels[scope] || scope).join("、");
   show("consent");
   $("deny").onclick = async () => {
     busy($("deny"), true);
