@@ -21,7 +21,7 @@ document.body.insertAdjacentHTML("afterbegin", `
         <label for="email">Routinaアカウントのメールアドレス</label>
         <input id="email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
         <button id="send-code" type="submit" class="primary">確認コードを送信</button>
-        <div id="verify-code" class="stack hidden">
+        <div id="verify-code" class="stack">
           <label for="otp">メールに届いた確認コード</label>
           <input id="otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="6〜8桁">
           <button id="confirm-code" type="button" class="primary">本人確認して続ける</button>
