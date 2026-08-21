@@ -35,7 +35,7 @@ document.body.insertAdjacentHTML("afterbegin", `
         <div class="permission"><span>✓</span><div><strong>ルーティンを読む</strong><small>ルーティン、ステップ、スケジュールだけ。履歴・日記・位置情報は対象外です。</small></div></div>
         <fieldset>
           <legend>書き込み権限</legend>
-          <label class="choice"><input type="radio" name="mode" value="confirm_each_write" checked><span><strong>変更ごとに確認</strong><small>AIは変更案を作り、この画面で承認するまで書き込みません。</small></span></label>
+          <label class="choice"><input type="radio" name="mode" value="confirm_each_write" checked><span><strong>変更ごとに確認</strong><small>AIは既存ルーティンの変更案と、新しいルーティンの作成案を作れます。どちらもこの画面で承認するまで書き込みません。</small></span></label>
           <label class="choice"><input type="radio" name="mode" value="read_only"><span><strong>読み取りのみ</strong><small>AIからの提案・書き込みを禁止します。</small></span></label>
         </fieldset>
         <div class="actions"><button id="deny" class="secondary" type="button">拒否</button><button id="allow" class="primary" type="button">接続を許可</button></div>
@@ -132,6 +132,7 @@ const api = async (apiPath, options = {}) => {
 };
 const renderValue = value => value === null ? "null" : typeof value === "string" ? value : JSON.stringify(value);
 const operationNames = {
+  create_routine: "ルーティンを新規作成",
   update_routine: "ルーティンを更新", archive_routine: "ルーティンをアーカイブ", add_step: "ステップを追加",
   update_step: "ステップを更新", archive_step: "ステップを削除", add_schedule: "スケジュールを追加",
   update_schedule: "スケジュールを更新", archive_schedule: "スケジュールを削除",
