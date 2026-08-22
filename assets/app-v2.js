@@ -22,7 +22,7 @@ document.body.insertAdjacentHTML("afterbegin", `
         <input id="email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
         <button id="send-code" type="submit" class="primary">確認コードを送信</button>
         <div id="verify-code" class="stack">
-          <label for="otp">メールに届いた確認コード</label>
+          <label for="otp">確認コード（メール本文に記載がある場合）</label>
           <input id="otp" name="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="6〜8桁">
           <button id="confirm-code" type="button" class="primary">本人確認して続ける</button>
         </div>
@@ -90,10 +90,14 @@ $("login").addEventListener("submit", async event => {
   busy($("send-code"), true);
   try {
     pendingEmail = $("email").value.trim().toLowerCase();
-    const { error } = await supabase.auth.signInWithOtp({ email: pendingEmail });
+    // リンクは必ずこのページへ戻す。authorization_id 等のクエリを落とすと認可が続かない。
+    const { error } = await supabase.auth.signInWithOtp({
+      email: pendingEmail,
+      options: { emailRedirectTo: location.href },
+    });
     if (error) throw error;
     show("verify-code");
-    status("確認コードを送信しました。メールに届いた6〜8桁を入力してください。");
+    status("メールを送信しました。本文のリンクを（このブラウザで）開いてください。コードが記載されている場合は下に入力しても続けられます。");
   } catch (error) {
     status(error.message || "送信できませんでした。", true);
   } finally {
@@ -308,7 +312,27 @@ async function accountPage() {
   show("account");
 }
 
+/// メールのリンクで戻ってきた場合、?code= を session に交換してから画面を決める。
+/// PKCE の verifier は送信したブラウザの localStorage にあるため、同じブラウザで開く必要がある。
+async function completeMagicLinkReturn() {
+  const url = new URL(location.href);
+  const code = url.searchParams.get("code");
+  if (!code) return;
+  try {
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) throw error;
+  } catch (error) {
+    status(error.message || "リンクからのサインインに失敗しました。同じブラウザで開き直してください。", true);
+    return;
+  } finally {
+    // code は一度きり。履歴とアドレス欄から消す。
+    url.searchParams.delete("code");
+    history.replaceState(null, "", url.toString());
+  }
+}
+
 try {
+  await completeMagicLinkReturn();
   if (page === "consent") await consentPage();
   else if (page === "change") await changePage();
   else await accountPage();
