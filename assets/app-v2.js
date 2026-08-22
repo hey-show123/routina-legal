@@ -7,6 +7,11 @@ const WEB_BASE = "https://hey-show123.github.io/routina-legal";
 const path = location.pathname;
 const page = path.includes("/oauth/consent") ? "consent" : path.includes("/changes") ? "change" : "account";
 const titles = { consent: "AI接続の確認", change: "変更内容の確認", account: "AI接続と監査" };
+const MODE_LABELS = {
+  read_only: "読み取りのみ",
+  confirm_each_write: "変更ごとに確認",
+  auto_apply_safe_writes: "確認なしで反映",
+};
 
 document.body.insertAdjacentHTML("afterbegin", `
   <main class="shell">
@@ -36,6 +41,7 @@ document.body.insertAdjacentHTML("afterbegin", `
         <fieldset>
           <legend>書き込み権限</legend>
           <label class="choice"><input type="radio" name="mode" value="confirm_each_write" checked><span><strong>変更ごとに確認</strong><small>AIは既存ルーティンの変更案と、新しいルーティンの作成案を作れます。どちらもこの画面で承認するまで書き込みません。</small></span></label>
+          <label class="choice"><input type="radio" name="mode" value="auto_apply_safe_writes"><span><strong>確認なしで反映</strong><small>AIが作成・変更をこの画面を通さずに反映します。アーカイブ（削除相当）だけは確認が必要です。反映後30日以内はUndoできます。</small></span></label>
           <label class="choice"><input type="radio" name="mode" value="read_only"><span><strong>読み取りのみ</strong><small>AIからの提案・書き込みを禁止します。</small></span></label>
         </fieldset>
         <div class="actions"><button id="deny" class="secondary" type="button">拒否</button><button id="allow" class="primary" type="button">接続を許可</button></div>
@@ -291,7 +297,7 @@ async function accountPage() {
         busy(revoke, false);
       }
     };
-    const subtitle = (item.mode === "read_only" ? "読み取りのみ" : "変更ごとに確認") + (item.last_used_at ? ` · 最終利用 ${new Date(item.last_used_at).toLocaleString("ja-JP")}` : "");
+    const subtitle = (MODE_LABELS[item.mode] ?? item.mode) + (item.last_used_at ? ` · 最終利用 ${new Date(item.last_used_at).toLocaleString("ja-JP")}` : "");
     return record(item.client_name, subtitle, item.revoked_at ? "解除済み" : "接続中", revoke);
   }) : [record("接続はありません", "CodexやClaudeからMCP URLを追加すると、ここに表示されます。")];
   $("connections").replaceChildren(...connections);
