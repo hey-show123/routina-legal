@@ -310,26 +310,52 @@ async function accountPage() {
   $("audits").replaceChildren(...audits);
   $("sign-out").onclick = async () => { await supabase.auth.signOut(); location.reload(); };
   show("account");
+  if (signedInViaLink) {
+    status("サインインできました。AIクライアント側で接続をやり直すと、この画面で承認できます。");
+  }
 }
 
-/// メールのリンクで戻ってきた場合、?code= を session に交換してから画面を決める。
-/// PKCE の verifier は送信したブラウザの localStorage にあるため、同じブラウザで開く必要がある。
+/// メールのリンクで戻ってきた場合に session を確立してから画面を決める。
+///
+/// Supabase は PKCE なら `?code=`、implicit なら `#access_token=` を付けて戻す。
+/// どちらで戻ってきても拾えるようにしておく。`?code=` の verifier は送信した
+/// ブラウザの localStorage にあるため、その場合だけ同じブラウザで開く必要がある。
 async function completeMagicLinkReturn() {
   const url = new URL(location.href);
+  const hash = new URLSearchParams(url.hash.replace(/^#/, ""));
+
+  const failure = url.searchParams.get("error_description") || url.searchParams.get("error")
+    || hash.get("error_description") || hash.get("error");
+  if (failure) {
+    status(decodeURIComponent(failure), true);
+  }
+
   const code = url.searchParams.get("code");
-  if (!code) return;
+  const accessToken = hash.get("access_token");
+  const refreshToken = hash.get("refresh_token");
+  if (!code && !accessToken) return;
+
   try {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { error } = code
+      ? await supabase.auth.exchangeCodeForSession(code)
+      : await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
     if (error) throw error;
+    signedInViaLink = true;
   } catch (error) {
-    status(error.message || "リンクからのサインインに失敗しました。同じブラウザで開き直してください。", true);
-    return;
+    status(
+      (error.message ? error.message + " — " : "")
+      + "リンクからのサインインに失敗しました。コードを送信したのと同じブラウザで、最新のメールのリンクを開いてください。",
+      true,
+    );
   } finally {
-    // code は一度きり。履歴とアドレス欄から消す。
-    url.searchParams.delete("code");
+    // 使い捨ての値を履歴とアドレス欄に残さない。
+    ["code", "error", "error_description", "error_code"].forEach(k => url.searchParams.delete(k));
+    url.hash = "";
     history.replaceState(null, "", url.toString());
   }
 }
+
+let signedInViaLink = false;
 
 try {
   await completeMagicLinkReturn();
